@@ -1,3 +1,5 @@
+package com.maovares.ms_products;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
