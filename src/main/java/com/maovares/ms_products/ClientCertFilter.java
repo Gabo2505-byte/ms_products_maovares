@@ -30,19 +30,21 @@ public class ClientCertFilter extends OncePerRequestFilter {
             reject(response);
             return;
         }
-        try {
+                try {
             byte[] der = Base64.getDecoder().decode(header);
             X509Certificate cert = (X509Certificate) CertificateFactory
                     .getInstance("X.509")
                     .generateCertificate(new ByteArrayInputStream(der));
             String thumbprint = HexFormat.of().withUpperCase()
                     .formatHex(MessageDigest.getInstance("SHA-1").digest(cert.getEncoded()));
+            logger.info("Thumbprint recibido: " + thumbprint + " | esperado: " + expectedThumbprint);
             if (!MessageDigest.isEqual(thumbprint.getBytes(),
                     expectedThumbprint.trim().toUpperCase().getBytes())) {
                 reject(response);
                 return;
             }
         } catch (Exception e) {
+            logger.error("Error validando certificado", e);
             reject(response);
             return;
         }
