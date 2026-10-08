@@ -25,37 +25,37 @@ public class ClientCertFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-                String header = request.getHeader("X-ARR-ClientCert");
-        logger.info("Header presente: " + (header != null && !header.isBlank())
-                + " | largo thumbprint configurado: " + expectedThumbprint.length());
-        if (header == null || header.isBlank() || expectedThumbprint.isBlank()) {
-            reject(response);
+        String header = request.getHeader("X-ARR-ClientCert");
+        if (header == null || header.isBlank()) {
+            reject(response, "DEBUG: header X-ARR-ClientCert ausente");
             return;
         }
-                try {
+        if (expectedThumbprint == null || expectedThumbprint.isBlank()) {
+            reject(response, "DEBUG: CLIENT_CERT_THUMBPRINT vacia");
+            return;
+        }
+        try {
             byte[] der = Base64.getDecoder().decode(header);
             X509Certificate cert = (X509Certificate) CertificateFactory
                     .getInstance("X.509")
                     .generateCertificate(new ByteArrayInputStream(der));
             String thumbprint = HexFormat.of().withUpperCase()
                     .formatHex(MessageDigest.getInstance("SHA-1").digest(cert.getEncoded()));
-            logger.info("Thumbprint recibido: " + thumbprint + " | esperado: " + expectedThumbprint);
-            if (!MessageDigest.isEqual(thumbprint.getBytes(),
-                    expectedThumbprint.trim().toUpperCase().getBytes())) {
-                reject(response);
+            String expected = expectedThumbprint.trim().toUpperCase();
+            if (!MessageDigest.isEqual(thumbprint.getBytes(), expected.getBytes())) {
+                reject(response, "DEBUG: recibido " + thumbprint + " esperado " + expected);
                 return;
             }
         } catch (Exception e) {
-            logger.error("Error validando certificado", e);
-            reject(response);
+            reject(response, "DEBUG: error " + e.getClass().getSimpleName() + ": " + e.getMessage());
             return;
         }
         chain.doFilter(request, response);
     }
 
-    private void reject(HttpServletResponse response) throws IOException {
+    private void reject(HttpServletResponse response, String detail) throws IOException {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("text/html");
-        response.getWriter().write("<h1>Client Certificate Required</h1>");
+        response.getWriter().write("<h1>Client Certificate Required</h1><p>" + detail + "</p>");
     }
 }
