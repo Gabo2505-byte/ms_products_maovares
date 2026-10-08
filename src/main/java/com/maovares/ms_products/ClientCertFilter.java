@@ -27,11 +27,13 @@ public class ClientCertFilter extends OncePerRequestFilter {
                                     FilterChain chain) throws ServletException, IOException {
         String header = request.getHeader("X-ARR-ClientCert");
         if (header == null || header.isBlank()) {
-            reject(response, "DEBUG: header X-ARR-ClientCert ausente");
+            logger.warn("Rechazado: header X-ARR-ClientCert ausente");
+            reject(response);
             return;
         }
         if (expectedThumbprint == null || expectedThumbprint.isBlank()) {
-            reject(response, "DEBUG: CLIENT_CERT_THUMBPRINT vacia");
+            logger.warn("Rechazado: CLIENT_CERT_THUMBPRINT no configurada");
+            reject(response);
             return;
         }
         try {
@@ -43,19 +45,21 @@ public class ClientCertFilter extends OncePerRequestFilter {
                     .formatHex(MessageDigest.getInstance("SHA-1").digest(cert.getEncoded()));
             String expected = expectedThumbprint.trim().toUpperCase();
             if (!MessageDigest.isEqual(thumbprint.getBytes(), expected.getBytes())) {
-                reject(response, "DEBUG: recibido " + thumbprint + " esperado " + expected);
+                logger.warn("Rechazado: thumbprint no coincide");
+                reject(response);
                 return;
             }
         } catch (Exception e) {
-            reject(response, "DEBUG: error " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            logger.warn("Rechazado: certificado invalido (" + e.getClass().getSimpleName() + ")");
+            reject(response);
             return;
         }
         chain.doFilter(request, response);
     }
 
-    private void reject(HttpServletResponse response, String detail) throws IOException {
+    private void reject(HttpServletResponse response) throws IOException {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("text/html");
-        response.getWriter().write("<h1>Client Certificate Required</h1><p>" + detail + "</p>");
+        response.getWriter().write("<h1>Client Certificate Required</h1>");
     }
 }
