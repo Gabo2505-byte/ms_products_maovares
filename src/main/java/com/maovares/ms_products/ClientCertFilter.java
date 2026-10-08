@@ -25,7 +25,9 @@ public class ClientCertFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        String header = request.getHeader("X-ARR-ClientCert");
+                String header = request.getHeader("X-ARR-ClientCert");
+        logger.info("Header presente: " + (header != null && !header.isBlank())
+                + " | largo thumbprint configurado: " + expectedThumbprint.length());
         if (header == null || header.isBlank() || expectedThumbprint.isBlank()) {
             reject(response);
             return;
